@@ -117,9 +117,6 @@
             };
         }
 
-        let announcement = 'Welcome';
-        setTimeout(() => announcement = null, 2000);
-
         function drawText(canvas, grid, text, x, y, {fillStyle = 'yellow', strokeStyle = 'black'} = {}) {
             const draw = canvas.getContext('2d');
 
@@ -153,8 +150,8 @@
             const draw = canvas.getContext('2d');
             const center = getPoint({width, height}, 0, 0);
 
-            const skyBlueDepth = Math.min(sunHeight < 140 ? (sunHeight + 30) * 2 : (150 - sunHeight) * 32, 255);
-            draw.fillStyle = `rgb(0, 0, ${skyBlueDepth})`;
+            const colorDepth = Math.max(Math.min(sunHeight < 140 ? (sunHeight + 30) * 2 : (150 - sunHeight) * 32, 255), 10);
+            draw.fillStyle = `rgb(0, 0, ${colorDepth})`;
             draw.fillRect(0, 0, width, height);
 
             draw.fillStyle = 'orange';
@@ -164,7 +161,7 @@
             draw.arc(sun.x, sun.y, sun.x - sunEdge.x, 0, Math.PI * 2);
             draw.fill();
 
-            draw.fillStyle = '#00DD33';
+            draw.fillStyle = `rgb(0, ${colorDepth}, 0)`;
             draw.fillRect(0, center.y, width, height - center.y);
 
             // draw.strokeRect(center.x, 0, 1, center.y + 11);
@@ -253,12 +250,12 @@
 
             // draw.stroke();
 
-            drawGolfer(draw, grid, -100);
+            drawTrump(draw, grid, -100);
 
             return yFunc;
         }
 
-        function drawGolfer(draw, grid, x) {
+        function drawTrump(draw, grid, x) {
             drawMarker(draw, grid, x, () => 0, {bodyStyle: 'white', headStyle: 'orange'});
 
             if (nextHit) {
@@ -272,6 +269,7 @@
         }
 
         function hitTheBall(canvas, grid, x, yFunc) {
+            announcement = null;
             const draw = canvas.getContext('2d');
 
             const moveBall = (newX) => {
@@ -318,18 +316,19 @@
             putin = {x, y: newY};
 
             if (!putinIsDead) {
-                drawMarker(draw, grid, x, () => newY, {bodyStyle: 'black', headStyle: 'tan', headHeight: 20});
+                drawMarker(draw, grid, x, () => newY, {bodyStyle: 'dimgray', headStyle: 'tan', headHeight: 20});
             } else {
-                drawMarker(draw, grid, x, () => 0, {bodyStyle: 'black', headStyle: 'red', headHeight: 20});
+                drawMarker(draw, grid, x, () => 0, {bodyStyle: 'dimgray', headStyle: 'red', headHeight: 20});
             }
 
             return (time) => {
-                const nextV = newY > 0 ? newV : -(newV * 0.6);
+                const nextV = newY > 0 ? newV : 0;
 
                 if (newY !== y || Math.floor(y) > 0) {
                     return jumpPutin(canvas, grid, x, newY, nextV, time);
                 } else {
-                    return jumpPutin(canvas, grid, x, 0, -6, 0);
+                    const jumpSpeed = Math.random() * -10;
+                    return jumpPutin(canvas, grid, x, 0, jumpSpeed, 0);
                 }
             };
         }
@@ -397,7 +396,7 @@
 
             window.onkeypress = function waitToStart({code}) {
                 if (code === 'Space') {
-                    announcement = null;
+                    announcement = 'Press Space to Hit Your Golf Ball';
                     playGame();
                 }
             }
