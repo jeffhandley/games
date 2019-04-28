@@ -120,13 +120,13 @@
         let announcement = 'Welcome';
         setTimeout(() => announcement = null, 2000);
 
-        function drawText(canvas, grid, text, x, y) {
+        function drawText(canvas, grid, text, x, y, {fillStyle = 'yellow', strokeStyle = 'black'} = {}) {
             const draw = canvas.getContext('2d');
 
             if (text) {
                 draw.font = '48px Verdana';
-                draw.fillStyle = 'yellow';
-                draw.strokeStyle = 'black';
+                draw.fillStyle = fillStyle;
+                draw.strokeStyle = strokeStyle;
 
                 const lines = text.split('\n');
 
@@ -140,8 +140,8 @@
             }
         }
 
-        function showAnnouncement(canvas, grid) {
-            drawText(canvas, grid, announcement, 0, 50);
+        function showAnnouncement(canvas, grid, {fillStyle = 'red', ...options} = {}) {
+            drawText(canvas, grid, announcement, 0, 50, {fillStyle, ...options});
         }
 
         function showScore(canvas, grid) {
@@ -167,35 +167,30 @@
             draw.fillStyle = '#00DD33';
             draw.fillRect(0, center.y, width, height - center.y);
 
-            draw.strokeRect(center.x, 0, 1, center.y + 11);
+            // draw.strokeRect(center.x, 0, 1, center.y + 11);
             draw.strokeRect(0, center.y, width, 1);
 
             draw.font = '10px sans-serif';
 
-            for (let x = -100; x <= 100; x+= 10) {
-                const point = getPoint({width, height}, x, 0);
+            // for (let x = -100; x <= 100; x+= 10) {
+            //     const point = getPoint({width, height}, x, 0);
 
-                if (x !== 0) {
-                    draw.strokeRect(point.x, point.y - 10, 1, 21);
-                }
+            //     if (x !== 0) {
+            //         draw.strokeRect(point.x, point.y - 10, 1, 21);
+            //     }
 
-                draw.fillStyle = 'black';
-                draw.fillText(x.toString(), point.x - ((x.toString().length * 5) / 2), point.y + 21);
-            }
+            //     draw.fillStyle = 'black';
+            //     draw.fillText(x.toString(), point.x - ((x.toString().length * 5) / 2), point.y + 21);
+            // }
 
-            for (let y = 10; y <= 100; y += 10) {
-                const point = getPoint({width, height}, 0, y);
+            // for (let y = 10; y <= 100; y += 10) {
+            //     const point = getPoint({width, height}, 0, y);
 
-                draw.strokeRect(point.x - 10, point.y, 21, 1);
+            //     draw.strokeRect(point.x - 10, point.y, 21, 1);
 
-                draw.fillStyle = 'black';
-                draw.fillText(y.toString(), point.x + 13, point.y + 4);
-            }
-
-            const grassDot = getPoint(grid, 60, 0);
-            draw.beginPath();
-            draw.arc(grassDot.x, grassDot.y + 30, 3, 0, Math.PI * 2);
-            draw.fill();
+            //     draw.fillStyle = 'black';
+            //     draw.fillText(y.toString(), point.x + 13, point.y + 4);
+            // }
 
             showAnnouncement(canvas, grid);
             showScore(canvas, grid);
@@ -291,7 +286,7 @@
                         hits: score.hits + 1
                     };
 
-                    announcement = 'Putin is dead! Mission Complete!';
+                    announcement = 'Putin is dead!\nMission Complete!';
 
                     setTimeout(() => {
                         announcement = null;
@@ -307,8 +302,6 @@
                             ...score,
                             misses: score.misses + 1
                         };
-
-                        console.log(score);
                     }
                 }
             };
@@ -394,15 +387,23 @@
             }
         }
 
-        announcement = 'Welcome to Putin Golf!\nPress Space to Start.';
-        showAnnouncement(backdrop, grid);
+        function drawStartScreen() {
+            const draw = backdrop.getContext('2d');
+            draw.fillStyle = 'yellow';
+            draw.fillRect(0, 0, grid.width, grid.height);
 
-        window.onkeypress = function waitToStart({code}) {
-            if (code === 'Space') {
-                announcement = null;
-                playGame();
+            announcement = 'Welcome to Putin Golf!\nPress Space to Start.';
+            showAnnouncement(backdrop, grid, {fillStyle: 'black'});
+
+            window.onkeypress = function waitToStart({code}) {
+                if (code === 'Space') {
+                    announcement = null;
+                    playGame();
+                }
             }
         }
+
+        drawStartScreen();
 
         // jumpPutin(canvas, canvas, 102, 100, 0, 0);
         // window.onresize = redraw;
