@@ -1,0 +1,413 @@
+<html>
+    <head>
+        <title>Canvas exploration</title>
+        <style>
+            body {
+                background-color: black;
+                padding: 0;
+                margin: 0;
+            }
+            canvas {
+                position: absolute;
+                top: 0;
+                left: 0;
+                width: 90%;
+                height: 90%;
+                margin-left: 5%;
+                margin-top: 5%;
+            }
+            #backdrop {
+                border: 1px dashed black;
+                background-color: #0000AA;
+            }
+        </style>
+    </head>
+    <body>
+        <canvas id="backdrop"></canvas>
+        <canvas id="plot"></canvas>
+    </body>
+    <script>
+        function setCanvasSize(canvas) {
+            const canvasStyle = getComputedStyle(canvas);
+
+            const width = parseInt(canvasStyle.getPropertyValue('width'), 10);
+            const height = parseInt(canvasStyle.getPropertyValue('height'), 10);
+
+            canvas.width = width;
+            canvas.height = height;
+
+            return {width, height};
+        }
+
+        function drawClockDots(draw, current, max, baseY, {width, height, radius, fontSize, fencePadding}) {
+            const fences = Math.floor((width - 20) / max);
+
+            draw.font = `bold ${fontSize}px sans-serif`;
+
+            draw.fillStyle = 'red';
+            draw.fillText(current.toString().padStart(2, '0'), (current * fences) + fencePadding - (fontSize / 2), baseY - ((fontSize / 2) * 3));
+
+            for (let x = 0; x < max; x++) {
+                draw.fillStyle = (x === current) ? 'red' : 'black';
+
+                let y;
+
+                if (x === current) {
+                    y = baseY;
+
+                } else if (x === (current + 59) % 60 || x === (current + 1) % 60) {
+                    y = baseY - (fontSize / 2);
+
+                } else if (x === (current + 58) % 60 || x === (current + 2) % 60) {
+                    y = baseY - ((fontSize / 2) * 2);
+
+                } else if (x === (current + 57) % 60 || x === (current + 3) % 60) {
+                    y = baseY - ((fontSize / 2) * 3);
+
+                } else if (x === (current + 56) % 60 || x === (current + 4) % 60) {
+                    y = baseY - ((fontSize / 2) * 4);
+
+                } else if (x !== current) {
+                    y = baseY - ((fontSize / 2) * 5);
+                }
+
+                draw.beginPath();
+                draw.arc((x * fences) + fencePadding, y, radius, 0, Math.PI * 2);
+                draw.fill();
+            }
+        }
+
+        function drawClockCanvas(canvas, {width, height}) {
+            const fences = Math.floor((width - 20) / 60);
+            const fenceWidth = fences * 60;
+            const fencePadding = Math.floor((width - fenceWidth) / 2);
+
+            const radius = fences / 3;
+            const fontSize = Math.max(fences * 4 / 3, 20);
+
+            const now = new Date();
+            const hour = now.getHours();
+            const minute = now.getMinutes();
+            const second = now.getSeconds();
+
+            const sizes = {
+                width,
+                height,
+                radius,
+                fontSize,
+                fencePadding
+            };
+
+            const draw = canvas.getContext('2d');
+            drawClockDots(draw, hour, 24, 100, sizes);
+            drawClockDots(draw, minute, 60, 300, sizes);
+            drawClockDots(draw, second, 60, 500, sizes);
+        }
+
+        function getPoint({width, height}, x, y) {
+            const xCenter = Math.floor(width / 2);
+            const yCenter = Math.floor(height * 0.90);
+
+            const left = xCenter + ((x / 100) * Math.floor((width - 50) / 2));
+            const top = yCenter - ((y / 100) * Math.floor((height * 0.90) - 50));
+
+            return {
+                x: left,
+                y: top
+            };
+        }
+
+        let announcement = 'Welcome';
+        setTimeout(() => announcement = null, 2000);
+
+        function drawText(canvas, grid, text, x, y) {
+            const draw = canvas.getContext('2d');
+
+            if (text) {
+                draw.font = '48px Verdana';
+                draw.fillStyle = 'yellow';
+                draw.strokeStyle = 'black';
+
+                const lines = text.split('\n');
+
+                for (let n = 0; n < lines.length; n++) {
+                    const announcementWidth = draw.measureText(lines[n]).width;
+                    const announcementPosition = getPoint(grid, x, y);
+
+                    draw.fillText(lines[n], announcementPosition.x - (announcementWidth / 2), announcementPosition.y + (n * 50));
+                    draw.strokeText(lines[n], announcementPosition.x - (announcementWidth / 2), announcementPosition.y + (n * 50));
+                }
+            }
+        }
+
+        function showAnnouncement(canvas, grid) {
+            drawText(canvas, grid, announcement, 0, 50);
+        }
+
+        function showScore(canvas, grid) {
+            const {hits, misses} = score;
+            drawText(canvas, grid, `Hits: ${hits}\nMisses: ${misses}`, -80, 90);
+        }
+
+        function drawBackground(canvas, {width, height}, {sunHeight = 0}) {
+            const draw = canvas.getContext('2d');
+            const center = getPoint({width, height}, 0, 0);
+
+            const skyBlueDepth = Math.min(sunHeight < 140 ? (sunHeight + 30) * 2 : (150 - sunHeight) * 32, 255);
+            draw.fillStyle = `rgb(0, 0, ${skyBlueDepth})`;
+            draw.fillRect(0, 0, width, height);
+
+            draw.fillStyle = 'orange';
+            draw.beginPath();
+            const sun = getPoint(grid, 0, sunHeight);
+            const sunEdge = getPoint(grid, -30, 0);
+            draw.arc(sun.x, sun.y, sun.x - sunEdge.x, 0, Math.PI * 2);
+            draw.fill();
+
+            draw.fillStyle = '#00DD33';
+            draw.fillRect(0, center.y, width, height - center.y);
+
+            draw.strokeRect(center.x, 0, 1, center.y + 11);
+            draw.strokeRect(0, center.y, width, 1);
+
+            draw.font = '10px sans-serif';
+
+            for (let x = -100; x <= 100; x+= 10) {
+                const point = getPoint({width, height}, x, 0);
+
+                if (x !== 0) {
+                    draw.strokeRect(point.x, point.y - 10, 1, 21);
+                }
+
+                draw.fillStyle = 'black';
+                draw.fillText(x.toString(), point.x - ((x.toString().length * 5) / 2), point.y + 21);
+            }
+
+            for (let y = 10; y <= 100; y += 10) {
+                const point = getPoint({width, height}, 0, y);
+
+                draw.strokeRect(point.x - 10, point.y, 21, 1);
+
+                draw.fillStyle = 'black';
+                draw.fillText(y.toString(), point.x + 13, point.y + 4);
+            }
+
+            const grassDot = getPoint(grid, 60, 0);
+            draw.beginPath();
+            draw.arc(grassDot.x, grassDot.y + 30, 3, 0, Math.PI * 2);
+            draw.fill();
+
+            showAnnouncement(canvas, grid);
+            showScore(canvas, grid);
+        }
+
+        function drawMarker(draw, grid, x, yFunc, {
+            circle = false,
+            fillStyle = 'red',
+            strokeStyle = 'black',
+            bodyStyle = 'red',
+            headStyle = 'red',
+            headHeight = 10
+        } = {}) {
+            const dot = getPoint(grid, x, yFunc(x));
+            draw.fillStyle = fillStyle;
+            draw.strokeStyle = strokeStyle;
+
+            if (circle) {
+                draw.beginPath();
+                draw.arc(dot.x, dot.y, 5, 0, Math.PI * 2);
+                draw.fill();
+                draw.arc(dot.x, dot.y, 5, 0, Math.PI * 2);
+                draw.stroke();
+            } else {
+                const size = {width: 10, height: 40};
+                const upperLeft = {x: dot.x - (size.width / 2), y: dot.y - size.height};
+                const lowerRight = {x: upperLeft.x + size.width, y: upperLeft.y + size.height};
+
+                draw.fillStyle = bodyStyle;
+                draw.fillRect(upperLeft.x, upperLeft.y, size.width, size.height);
+
+                draw.fillStyle = headStyle;
+                draw.fillRect(upperLeft.x, upperLeft.y, size.width, headHeight);
+                draw.strokeRect(upperLeft.x, upperLeft.y, size.width, size.height);
+
+                return {
+                    upperLeft,
+                    lowerRight,
+                    size
+                };
+            }
+        }
+
+        function drawParabola(canvas, grid, x) {
+            const draw = canvas.getContext('2d');
+            const yFunc = x => 70 - (Math.pow(x, 2) / 142);
+
+            // draw.strokeStyle = 'blue';
+            // draw.beginPath();
+
+            // for (let x = -100; x <= 100; x++) {
+            //     const point = getPoint(grid, x, yFunc(x));
+
+            //     if (x === -100) {
+            //         draw.moveTo(point.x, point.y);
+            //     } else {
+            //         draw.lineTo(point.x, point.y);
+            //     }
+            // }
+
+            // draw.stroke();
+
+            drawGolfer(draw, grid, -100);
+
+            return yFunc;
+        }
+
+        function drawGolfer(draw, grid, x) {
+            drawMarker(draw, grid, x, () => 0, {bodyStyle: 'white', headStyle: 'orange'});
+
+            if (nextHit) {
+                const club = getPoint(grid, x, 0);
+                draw.fillStyle = 'black';
+                draw.fillRect(club.x + 5, club.y - 30, 35, 2);
+
+                draw.fillStyle = 'lightgrey';
+                draw.fillRect(club.x + 40, club.y - 38, 4, 10);
+            }
+        }
+
+        function hitTheBall(canvas, grid, x, yFunc) {
+            const draw = canvas.getContext('2d');
+
+            const moveBall = (newX) => {
+                const newY = yFunc(x);
+                drawMarker(draw, grid, newX, yFunc, {circle: true, fillStyle: 'white'});
+
+                if (newX >= 98 && putin.y < 5) {
+                    putinIsDead = true;
+
+                    score = {
+                        ...score,
+                        hits: score.hits + 1
+                    };
+
+                    announcement = 'Putin is dead! Mission Complete!';
+
+                    setTimeout(() => {
+                        announcement = null;
+                        putinIsDead = false;
+                    }, 2000);
+                }
+
+                if (newX < 100) {
+                    return () => moveBall(newX + 4);
+                } else {
+                    if (!putinIsDead) {
+                        score = {
+                            ...score,
+                            misses: score.misses + 1
+                        };
+
+                        console.log(score);
+                    }
+                }
+            };
+
+            return moveBall(x);
+        }
+
+        function jumpPutin(canvas, grid, x, y, v, s) {
+            const draw = canvas.getContext('2d');
+
+            const newV = v + (9.8 * (s / 1000));
+            const newY = Math.max(y - newV, 0);
+
+            putin = {x, y: newY};
+
+            if (!putinIsDead) {
+                drawMarker(draw, grid, x, () => newY, {bodyStyle: 'black', headStyle: 'tan', headHeight: 20});
+            } else {
+                drawMarker(draw, grid, x, () => 0, {bodyStyle: 'black', headStyle: 'red', headHeight: 20});
+            }
+
+            return (time) => {
+                const nextV = newY > 0 ? newV : -(newV * 0.6);
+
+                if (newY !== y || Math.floor(y) > 0) {
+                    return jumpPutin(canvas, grid, x, newY, nextV, time);
+                } else {
+                    return jumpPutin(canvas, grid, x, 0, -6, 0);
+                }
+            };
+        }
+
+        let nextHit;
+        let putin;
+        let putinIsDead = false;
+        let sunHeight = 70;
+        let score = {
+            hits: 0,
+            misses: 0
+        };
+
+        const sunSpeed = -0.2;
+
+        const backdrop = document.getElementById('backdrop');
+        const plot = document.getElementById('plot');
+        const grid = setCanvasSize(backdrop);
+        setCanvasSize(plot);
+
+        function playGame() {
+            drawBackground(backdrop, grid, {sunHeight});
+
+            const yFunc = drawParabola(backdrop, grid, -100);
+
+            let nextJump = jumpPutin(plot, grid, 100, 0, -6, 0);
+
+            const keepGoing = () => {
+                sunHeight += sunSpeed;
+
+                if (sunHeight < -30) {
+                    sunHeight = 150;
+                }
+
+                drawBackground(backdrop, grid, {sunHeight});
+                drawParabola(backdrop, grid, -100);
+
+                const draw = plot.getContext('2d');
+                draw.clearRect(0, 0, grid.width, grid.height);
+
+                nextHit && (nextHit = nextHit());
+                nextJump && (nextJump = nextJump(100));
+
+                if (nextHit || nextJump) {
+                    setTimeout(keepGoing, 100);
+                }
+            };
+
+            keepGoing();
+
+            window.onkeypress = function keyPress({code}) {
+                if (code === 'Space' && !nextHit) {
+                    nextHit = hitTheBall(plot, grid, -100, yFunc);
+                }
+            }
+        }
+
+        announcement = 'Welcome to Putin Golf!\nPress Space to Start.';
+        showAnnouncement(backdrop, grid);
+
+        window.onkeypress = function waitToStart({code}) {
+            if (code === 'Space') {
+                announcement = null;
+                playGame();
+            }
+        }
+
+        // jumpPutin(canvas, canvas, 102, 100, 0, 0);
+        // window.onresize = redraw;
+
+        // setInterval(redraw, 100);
+
+    </script>
+</html>
