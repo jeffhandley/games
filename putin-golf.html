@@ -161,6 +161,11 @@
             draw.arc(sun.x, sun.y, sun.x - sunEdge.x, 0, Math.PI * 2);
             draw.fill();
 
+            draw.fillStyle = 'gray';
+            const wall = getPoint({width, height}, 0, 10);
+            draw.fillRect(0, wall.y, width, center.y - wall.y);
+            drawText(canvas, {width, height}, 'The great wall of \'Murica', 0, 3, {fillStyle: 'black'});
+
             draw.fillStyle = `rgb(0, ${colorDepth}, 0)`;
             draw.fillRect(0, center.y, width, height - center.y);
 
