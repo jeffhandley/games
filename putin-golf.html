@@ -389,6 +389,12 @@
                     nextHit = hitTheBall(plot, grid, -100, yFunc);
                 }
             }
+
+            window.onclick = function click() {
+                if (!nextHit) {
+                    nextHit = hitTheBall(plot, grid, -100, yFunc);
+                }
+            }
         }
 
         function drawStartScreen() {
@@ -404,6 +410,11 @@
                     announcement = 'Press Space to Hit Your Golf Ball';
                     playGame();
                 }
+            }
+
+            window.onclick = function waitToStartOnClick() {
+                announcement = 'Press Space to Hit Your Golf Ball';
+                playGame();
             }
         }
 
